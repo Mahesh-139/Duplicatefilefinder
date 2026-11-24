@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duplicate File Finder</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+          <polyline points="13 2 13 9 20 9"></polyline>
+          <path d="M9 13h6"></path>
+          <path d="M9 17h3"></path>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Duplicate File Finder</h1>
+        <p>Accurate SHA-256 duplicate detection & safe storage cleanup</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="status-indicator"></span>
+      <span>Desktop Safe Mode</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- Folder Selection Section -->
+    <section class="card folder-picker-card">
+      <h2 class="card-title">Select Directory</h2>
+      <p class="card-subtitle">Choose a local folder to scan recursively for identical files.</p>
+      
+      <div class="folder-input-group">
+        <div class="input-wrapper">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <input type="text" id="folderInput" placeholder="Click 'Browse Folder' or type/paste directory path..." />
+        </div>
+        <button id="browseBtn" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Browse Folder
+        </button>
+        <button id="scanBtn" class="btn btn-primary">
+          <span id="scanBtnSpinner" class="spinner hidden"></span>
+          <svg id="scanBtnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span id="scanBtnText">Scan For Duplicates</span>
+        </button>
+      </div>
+      <div id="scanStatusText" class="scan-status-text"></div>
+    </section>
+
+    <!-- Dashboard Summary Cards -->
+    <section class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-info">
+          <span class="summary-label">Duplicate Groups</span>
+          <span class="summary-value" id="statGroups">0</span>
+          <span class="summary-hint">Sets of identical files</span>
+        </div>
+        <div class="summary-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="16" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2H5"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-info">
+          <span class="summary-label">Duplicate Files</span>
+          <span class="summary-value" id="statFiles">0</span>
+          <span class="summary-hint">Removable redundant copies</span>
+        </div>
+        <div class="summary-icon icon-amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-info">
+          <span class="summary-label">Wasted Storage</span>
+          <span class="summary-value" id="statStorage">0 B</span>
+          <span class="summary-hint">Space reclaimable after cleanup</span>
+        </div>
+        <div class="summary-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="card results-card">
+      <div class="results-header">
+        <div>
+          <h2 class="card-title">Duplicate Results</h2>
+          <p class="card-subtitle" id="resultsSubtitle">Scanned files will appear organized by duplicate group below.</p>
+        </div>
+        <div class="results-actions hidden" id="resultsActionsBar">
+          <button id="selectAllBtn" class="btn btn-outline btn-sm">Select All Duplicates</button>
+          <button id="deselectAllBtn" class="btn btn-outline btn-sm">Deselect All</button>
+          <button id="deleteBtn" class="btn btn-danger btn-sm" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span id="deleteBtnText">Delete Selected (0)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Initial Welcome State -->
+      <div id="initialState" class="empty-state">
+        <div class="empty-state-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="3"></circle>
+          </svg>
+        </div>
+        <h3>No Folder Scanned Yet</h3>
+        <p>Select a folder above and click <strong>Scan For Duplicates</strong> to begin analyzing your files.</p>
+      </div>
+
+      <!-- No Duplicates Found State -->
+      <div id="cleanState" class="empty-state hidden">
+        <div class="empty-state-icon clean-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <h3>No Duplicate Files Found!</h3>
+        <p>All scanned files in this directory are unique. No redundant storage was detected.</p>
+      </div>
+
+      <!-- Duplicate Groups Container -->
+      <div id="groupsContainer" class="groups-container hidden"></div>
+
+    </section>
+
+  </main>
+
+  <!-- Confirmation Deletion Modal -->
+  <div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-icon-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <div>
+          <h3>Confirm File Deletion</h3>
+          <p>Please review before proceeding. This permanently deletes the selected files.</p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-stat-box">
+          <div>
+            <strong>Files to Delete:</strong>
+            <span id="modalFileCount">0</span>
+          </div>
+          <div>
+            <strong>Space to Reclaim:</strong>
+            <span id="modalSpaceCount">0 B</span>
+          </div>
+        </div>
+        <p class="modal-safety-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline-icon">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <strong>Safety Guaranteed:</strong> The original file in every duplicate group will remain completely untouched.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+        <button id="confirmDeleteBtn" class="btn btn-danger">Confirm & Permanently Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Frontend Logic -->
+  <script>
+    // State management
+    let activeFolder = "";
+    let duplicateGroups = [];
+    let selectedFilePaths = new Set();
+    let fileInfoLookup = new Map(); // path -> { name, size_bytes, size_formatted }
+
+    // DOM Elements
+    const folderInput = document.getElementById("folderInput");
+    const browseBtn = document.getElementById("browseBtn");
+    const scanBtn = document.getElementById("scanBtn");
+    const scanBtnSpinner = document.getElementById("scanBtnSpinner");
+    const scanBtnIcon = document.getElementById("scanBtnIcon");
+    const scanBtnText = document.getElementById("scanBtnText");
+    const scanStatusText = document.getElementById("scanStatusText");
+
+    const statGroups = document.getElementById("statGroups");
+    const statFiles = document.getElementById("statFiles");
+    const statStorage = document.getElementById("statStorage");
+
+    const resultsActionsBar = document.getElementById("resultsActionsBar");
+    const resultsSubtitle = document.getElementById("resultsSubtitle");
+    const selectAllBtn = document.getElementById("selectAllBtn");
+    const deselectAllBtn = document.getElementById("deselectAllBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+    const deleteBtnText = document.getElementById("deleteBtnText");
+
+    const initialState = document.getElementById("initialState");
+    const cleanState = document.getElementById("cleanState");
+    const groupsContainer = document.getElementById("groupsContainer");
+
+    const confirmModal = document.getElementById("confirmModal");
+    const modalFileCount = document.getElementById("modalFileCount");
+    const modalSpaceCount = document.getElementById("modalSpaceCount");
+    const cancelModalBtn = document.getElementById("cancelModalBtn");
+    const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+
+    const toast = document.getElementById("toast");
+
+    // Show temporary notification toast
+    function showToast(message, type = "info") {
+      toast.textContent = message;
+      toast.className = `toast toast-${type}`;
+      toast.classList.remove("hidden");
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 4000);
+    }
+
+    // Format bytes to human readable string
+    function formatBytes(bytes) {
+      if (bytes <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB", "TB"];
+      let size = bytes;
+      let unitIdx = 0;
+      while (size >= 1024 && unitIdx < units.length - 1) {
+        size /= 1024;
+        unitIdx++;
+      }
+      return `${size.toFixed(2)} ${units[unitIdx]}`;
+    }
+
+    // Browse Folder handler
+    browseBtn.addEventListener("click", async () => {
+      try {
+        browseBtn.disabled = true;
+        const response = await fetch("/api/browse-folder", { method: "POST" });
+        const data = await response.json();
+        if (data.success && data.folder) {
+          folderInput.value = data.folder;
+        }
+      } catch (err) {
+        showToast("Error opening folder picker", "error");
+      } finally {
+        browseBtn.disabled = false;
+      }
+    });
+
+    // Scan Button handler
+    scanBtn.addEventListener("click", async () => {
+      const folderPath = folderInput.value.trim();
+      if (!folderPath) {
+        showToast("Please select or enter a folder path first.", "error");
+        folderInput.focus();
+        return;
+      }
+
+      setScanningState(true);
+      scanStatusText.textContent = "Scanning directory and computing SHA-256 hashes...";
+
+      try {
+        const response = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder: folderPath })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          showToast(result.error || "Scanning failed.", "error");
+          scanStatusText.textContent = "";
+          return;
+        }
+
+        activeFolder = result.base_directory;
+        duplicateGroups = result.groups || [];
+        updateSummary(result.summary);
+        renderDuplicateGroups(duplicateGroups);
+        scanStatusText.textContent = `Scanned ${result.summary.total_scanned_files} files in total.`;
+      } catch (err) {
+        showToast("An unexpected error occurred during scan.", "error");
+        scanStatusText.textContent = "";
+      } finally {
+        setScanningState(false);
+      }
+    });
+
+    function setScanningState(isScanning) {
+      scanBtn.disabled = isScanning;
+      browseBtn.disabled = isScanning;
+      folderInput.disabled = isScanning;
+
+      if (isScanning) {
+        scanBtnSpinner.classList.remove("hidden");
+        scanBtnIcon.classList.add("hidden");
+        scanBtnText.textContent = "Scanning...";
+      } else {
+        scanBtnSpinner.classList.add("hidden");
+        scanBtnIcon.classList.remove("hidden");
+        scanBtnText.textContent = "Scan For Duplicates";
+      }
+    }
+
+    function updateSummary(summary) {
+      statGroups.textContent = summary.total_duplicate_groups || 0;
+      statFiles.textContent = summary.total_duplicate_files || 0;
+      statStorage.textContent = summary.total_wasted_formatted || "0 B";
+    }
+
+    // Render results in groups
+    function renderDuplicateGroups(groups) {
+      selectedFilePaths.clear();
+      fileInfoLookup.clear();
+      groupsContainer.innerHTML = "";
+
+      if (!groups || groups.length === 0) {
+        initialState.classList.add("hidden");
+        cleanState.classList.remove("hidden");
+        groupsContainer.classList.add("hidden");
+        resultsActionsBar.classList.add("hidden");
+        resultsSubtitle.textContent = "0 duplicate groups detected.";
+        return;
+      }
+
+      initialState.classList.add("hidden");
+      cleanState.classList.add("hidden");
+      groupsContainer.classList.remove("hidden");
+      resultsActionsBar.classList.remove("hidden");
+      resultsSubtitle.textContent = `Found ${groups.length} duplicate group(s). Redundant copies can be removed below.`;
+
+      groups.forEach((group) => {
+        const groupCard = document.createElement("div");
+        groupCard.className = "group-card";
+
+        // Build header
+        const header = document.createElement("div");
+        header.className = "group-header";
+        header.innerHTML = `
+          <div class="group-title-col">
+            <span class="group-badge">Group #${group.group_id}</span>
+            <span class="group-hash" title="SHA-256 Hash: ${group.hash}">SHA-256: ${group.hash.substring(0, 16)}...</span>
+          </div>
+          <div class="group-meta-col">
+            <span class="meta-tag">${group.file_count} copies</span>
+            <span class="meta-tag meta-wasted">Wasting ${group.wasted_formatted}</span>
+          </div>
+        `;
+        groupCard.appendChild(header);
+
+        // Build file list table
+        const table = document.createElement("table");
+        table.className = "file-table";
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th style="width: 44px;">Select</th>
+              <th style="width: 140px;">Status</th>
+              <th>File Name & Path</th>
+              <th style="width: 110px;">Size</th>
+              <th style="width: 160px;">Modified Date</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector("tbody");
+
+        group.files.forEach((file) => {
+          fileInfoLookup.set(file.path, file);
+
+          const row = document.createElement("tr");
+          row.className = file.is_original ? "row-original" : "row-duplicate";
+
+          const checkboxTd = document.createElement("td");
+          if (file.is_original) {
+            checkboxTd.innerHTML = `
+              <input type="checkbox" disabled title="The original copy is protected and cannot be deleted." />
+            `;
+          } else {
+            const chk = document.createElement("input");
+            chk.type = "checkbox";
+            chk.dataset.path = file.path;
+            chk.addEventListener("change", (e) => {
+              if (e.target.checked) {
+                selectedFilePaths.add(file.path);
+              } else {
+                selectedFilePaths.delete(file.path);
+              }
+              updateDeleteButtonState();
+            });
+            checkboxTd.appendChild(chk);
+          }
+
+          const statusTd = document.createElement("td");
+          if (file.is_original) {
+            statusTd.innerHTML = `<span class="badge badge-original">ORIGINAL (KEEP)</span>`;
+          } else {
+            statusTd.innerHTML = `<span class="badge badge-duplicate">DUPLICATE</span>`;
+          }
+
+          const nameTd = document.createElement("td");
+          nameTd.innerHTML = `
+            <div class="file-name-text">${escapeHtml(file.name)}</div>
+            <div class="file-path-text" title="${escapeHtml(file.path)}">${escapeHtml(file.path)}</div>
+          `;
+
+          const sizeTd = document.createElement("td");
+          sizeTd.className = "file-size-text";
+          sizeTd.textContent = file.size_formatted;
+
+          const dateTd = document.createElement("td");
+          dateTd.className = "file-date-text";
+          dateTd.textContent = file.modified_time;
+
+          row.appendChild(checkboxTd);
+          row.appendChild(statusTd);
+          row.appendChild(nameTd);
+          row.appendChild(sizeTd);
+          row.appendChild(dateTd);
+
+          tbody.appendChild(row);
+        });
+
+        groupCard.appendChild(table);
+        groupsContainer.appendChild(groupCard);
+      });
+
+      updateDeleteButtonState();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+    }
+
+    // Select all duplicates (preserves original in each group)
+    selectAllBtn.addEventListener("click", () => {
+      selectedFilePaths.clear();
+      const checkboxes = groupsContainer.querySelectorAll("input[type='checkbox']:not([disabled])");
+      checkboxes.forEach((cb) => {
+        cb.checked = true;
+        selectedFilePaths.add(cb.dataset.path);
+      });
+      updateDeleteButtonState();
+    });
+
+    // Deselect all
+    deselectAllBtn.addEventListener("click", () => {
+      selectedFilePaths.clear();
+      const checkboxes = groupsContainer.querySelectorAll("input[type='checkbox']:not([disabled])");
+      checkboxes.forEach((cb) => {
+        cb.checked = false;
+      });
+      updateDeleteButtonState();
+    });
+
+    function updateDeleteButtonState() {
+      const count = selectedFilePaths.size;
+      deleteBtnText.textContent = `Delete Selected (${count})`;
+      deleteBtn.disabled = count === 0;
+    }
+
+    // Open confirmation modal
+    deleteBtn.addEventListener("click", () => {
+      if (selectedFilePaths.size === 0) return;
+
+      let totalBytesToDelete = 0;
+      selectedFilePaths.forEach((path) => {
+        const info = fileInfoLookup.get(path);
+        if (info) totalBytesToDelete += (info.size_bytes || 0);
+      });
+
+      modalFileCount.textContent = selectedFilePaths.size;
+      modalSpaceCount.textContent = formatBytes(totalBytesToDelete);
+      confirmModal.classList.remove("hidden");
+    });
+
+    // Close modal
+    cancelModalBtn.addEventListener("click", () => {
+      confirmModal.classList.add("hidden");
+    });
+
+    // Confirm deletion
+    confirmDeleteBtn.addEventListener("click", async () => {
+      confirmDeleteBtn.disabled = true;
+      confirmDeleteBtn.textContent = "Deleting files...";
+
+      try {
+        const filesArray = Array.from(selectedFilePaths);
+        const response = await fetch("/api/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder: activeFolder,
+            files: filesArray
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast(`Successfully deleted ${result.deleted_count} duplicate file(s), freeing ${result.freed_formatted}!`, "success");
+          confirmModal.classList.add("hidden");
+
+          if (result.updated_data) {
+            duplicateGroups = result.updated_data.groups || [];
+            updateSummary(result.updated_data.summary);
+            renderDuplicateGroups(duplicateGroups);
+          } else {
+            // Rescan if updated_data was not included
+            scanBtn.click();
+          }
+        } else {
+          showToast(result.error || "Failed to delete files.", "error");
+        }
+      } catch (err) {
+        showToast("Error during deletion request.", "error");
+      } finally {
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.textContent = "Confirm & Permanently Delete";
+      }
+    });
+  </script>
+
+</body>
+</html>
+
